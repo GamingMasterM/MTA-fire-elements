@@ -75,7 +75,7 @@ function setFireDecaying(uFire, bDecaying)
 	if isTimer(tblFires[uFire].uDecayTimer) then
 		killTimer(tblFires[uFire].uDecayTimer)
 	end
-	
+
 	if bDecaying then
 		tblFires[uFire].uDecayTimer = setTimer(function()
 			if tblFires[uFire].iSize > 1 then
@@ -107,7 +107,7 @@ function createFireElement(iX, iY, iZ, iSize, bDecaying)
 		tblFires[uPed].iSize = iSize
 		setFireDecaying(uPed, bDecaying)
 		triggerClientEvent("fireElements:onFireCreate", uPed, iSize)
-		
+
 		addEventHandler("fireElements:requestFireDeletion", uPed, destroyFireElement)
 		return uPed
 	end
@@ -143,7 +143,7 @@ addEventHandler("fireElements:onClientRequestsFires", resourceRoot, function()
 end)
 
 
---[[
+--[[ --test section
 addEventHandler("onResourceStart", resourceRoot, function()
 	local tblCurrentFires = {}
 	addEventHandler("onVehicleExplode", root, function()
@@ -152,7 +152,7 @@ addEventHandler("onResourceStart", resourceRoot, function()
 		local blip = createBlip(iX, iY, iZ)
 		local max = math.random(2,7)
 		local cur = 0
-		for i=1, max do 
+		for i=1, max do
 			tblCurrentFires[source][i] = createFireElement(iX+math.random(-1.5, 1.5), iY+math.random(-1.5, 1.5), iZ+math.random(-1.5, 1.5), math.random(1,3))
 			addEventHandler("fireElements:onFireExtinguish", tblCurrentFires[source][i], function()
 				cur = cur + 1
@@ -162,7 +162,7 @@ addEventHandler("onResourceStart", resourceRoot, function()
 			end)
 		end
 	end)
-	
+
 	setTimer(function()
 		createFireElement(0, 0, 3, 1)
 		createFireElement(0, 3, 3, 2)

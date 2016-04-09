@@ -5,6 +5,10 @@
 --\\
 
 
+addEvent("fireElements:onFireCreate", true)
+addEvent("fireElements:onFireDestroy", true)
+addEvent("fireElements:onFireDecreaseSize", true)
+
 --//
 --||  useful
 --\\
@@ -25,6 +29,7 @@ end
 local setting_tickNoise = false -- tick sound at extinguishing
 local setting_smoke = true -- smoke effect at extinguishing
 local setting_smokeRenderDistance = 100 -- until which distance the smoke at extinguishing renders
+local setting_smallFireRenderDistance = 20 -- until which distance a small fire renders (x2 for medium, x3 for large)
 
 
 --//
@@ -35,7 +40,7 @@ local tblEffectFromFireSize = {
 	[1] = "fire",
 	[2] = "fire_med",
 	[3] = "fire_large",
- 
+
 }
 
 local tblFires = {}
@@ -148,7 +153,7 @@ local function decreaseFireSize(iSize)
 	destroyElementIfExists(tblFires[source].uEffect)
 	destroyElementIfExists(tblFires[source].uBurningCol)
 	local iX, iY, iZ = getElementPosition(source)
-	tblFires[source].uEffect = createEffect(tblEffectFromFireSize[iSize], iX, iY, iZ,-90, 0, 0, 20*iSize)
+	tblFires[source].uEffect = createEffect(tblEffectFromFireSize[iSize], iX, iY, iZ,-90, 0, 0, setting_smallFireRenderDistance*iSize)
 	tblFires[source].uBurningCol = createColSphere(iX, iY, iZ, iSize/4)
 	addEventHandler("onClientColShapeHit", tblFires[source].uBurningCol, burnPlayer)
 	end
@@ -167,10 +172,10 @@ local function createFireElement(iSize, uPed)
 	local iX, iY, iZ = getElementPosition(uPed)
 	tblFires[uPed] = {}
 	tblFires[uPed].iSize = iSize
-	tblFires[uPed].uEffect = createEffect(tblEffectFromFireSize[iSize], iX, iY, iZ,-90, 0, 0, 20*iSize)
+	tblFires[uPed].uEffect = createEffect(tblEffectFromFireSize[iSize], iX, iY, iZ,-90, 0, 0, setting_smallFireRenderDistance*iSize)
 	tblFires[uPed].uBurningCol = createColSphere(iX, iY, iZ, iSize/4)
 	setElementCollidableWith (uPed, localPlayer, false)
-	for index,vehicle in ipairs(getElementsByType("vehicle")) do 
+	for index,vehicle in ipairs(getElementsByType("vehicle")) do
 		setElementCollidableWith(vehicle, uPed, false)
 	end
 	addEventHandler("onClientPedDamage", uPed, handlePedDamage)
@@ -182,11 +187,8 @@ end
 --||  events
 --\\
 
-addEvent("fireElements:onFireCreate", true)
 addEventHandler("fireElements:onFireCreate", resourceRoot, createFireElement)
-addEvent("fireElements:onFireDestroy", true)
 addEventHandler("fireElements:onFireDestroy", resourceRoot, destroyFireElement)
-addEvent("fireElements:onFireDecreaseSize", true)
 addEventHandler("fireElements:onFireDecreaseSize", resourceRoot, decreaseFireSize)
 
 
