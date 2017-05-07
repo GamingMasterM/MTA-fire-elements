@@ -32,7 +32,7 @@ addEvent("fireElements:onFireExtinguish")
 
 function destroyFireElement(uElement, uDestroyer)
 	if tblFires[uElement] then
-		triggerClientEvent("fireElements:onFireDestroy", resourceRoot, uElement) -- uElement cannot be the triggered source element because its destroyed lol
+		triggerClientEvent("fireElements:onFireDestroy", resourceRoot, uElement) -- uElement cannot be the triggered source element because it's destroyed lol
 		if isElement(uElement) then
 			triggerEvent("fireElements:onFireExtinguish", uElement, uDestroyer, tblFires[uElement].iSize)
 			destroyElement(uElement)
@@ -56,6 +56,7 @@ end
 local function decreaseFireSize(uFire)
 	if tblFires[uFire].iSize > 1 then
 		tblFires[uFire].iSize = tblFires[uFire].iSize - 1
+		setElementHealth(uFire, 100) -- renew fire
 		triggerClientEvent("fireElements:onFireDecreaseSize", uFire, tblFires[uFire].iSize)
 		return true
 	end
@@ -126,7 +127,11 @@ addEventHandler("fireElements:requestFireDeletion", resourceRoot, function()
 	if isPedInVehicle(client) then iDist = 10 end
 	if getDistanceBetweenPoints3D(iCx, iCy, iCz, iCx, iCy, iCz) <= iDist then
 		if not tblLastFireOfPlayer[client] or getTickCount()-tblLastFireOfPlayer[client] > 50 then
-			destroyFireElement(source, client)
+			if tblFires[source].iSize > 1 then
+				decreaseFireSize(source)
+			else
+				destroyFireElement(source, client)
+			end
 			tblLastFireOfPlayer[client] = getTickCount()
 		end
 	end
@@ -143,23 +148,25 @@ addEventHandler("fireElements:onClientRequestsFires", resourceRoot, function()
 end)
 
 
---[[ --test section
+--[[--test section
 addEventHandler("onResourceStart", resourceRoot, function()
 	local tblCurrentFires = {}
 	addEventHandler("onVehicleExplode", root, function()
-		local iX, iY, iZ = getElementPosition(source)
-		tblCurrentFires[source] = {}
-		local blip = createBlip(iX, iY, iZ)
-		local max = math.random(2,7)
-		local cur = 0
-		for i=1, max do
-			tblCurrentFires[source][i] = createFireElement(iX+math.random(-1.5, 1.5), iY+math.random(-1.5, 1.5), iZ+math.random(-1.5, 1.5), math.random(1,3))
-			addEventHandler("fireElements:onFireExtinguish", tblCurrentFires[source][i], function()
-				cur = cur + 1
-				if cur == max then
-					destroyElement(blip)
-				end
-			end)
+		if isElement(source) then --FIX to prevent errors when vehicle gets deleted on explosion
+			local iX, iY, iZ = getElementPosition(source)
+			tblCurrentFires[source] = {}
+			local blip = createBlip(iX, iY, iZ)
+			local max = math.random(2,7)
+			local cur = 0
+			for i=1, max do
+				tblCurrentFires[source][i] = createFireElement(iX+math.random(-1.5, 1.5), iY+math.random(-1.5, 1.5), iZ+math.random(-0.5, 0.5), math.random(1,3))
+				addEventHandler("fireElements:onFireExtinguish", tblCurrentFires[source][i], function(player)
+					cur = cur + 1
+					if cur == max then
+						destroyElement(blip)
+					end
+				end)
+			end
 		end
 	end)
 
@@ -168,5 +175,4 @@ addEventHandler("onResourceStart", resourceRoot, function()
 		createFireElement(0, 3, 3, 2)
 		createFireElement(0, 6, 3, 3)
 	end,500,1)
-end)
-]]
+end)]]

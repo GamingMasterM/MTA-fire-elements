@@ -30,6 +30,7 @@ local setting_tickNoise = false -- tick sound at extinguishing
 local setting_smoke = true -- smoke effect at extinguishing
 local setting_smokeRenderDistance = 100 -- until which distance the smoke at extinguishing renders
 local setting_smallFireRenderDistance = 20 -- until which distance a small fire renders (x2 for medium, x3 for large)
+local setting_extinguishTime = 10 -- not an actual time, but 1/setting chance of fire extinguishing
 
 
 --//
@@ -57,6 +58,8 @@ local function destroyFireElement(uElement)
 	if tblFires[uElement] then
 		destroyElementIfExists(tblFires[uElement].uEffect)
 		destroyElementIfExists(tblFires[uElement].uBurningCol)
+		local uSmoke = tblFires[uElement].uSmokeEffect
+		if isElement(uSmoke) then setTimer(destroyElementIfExists, 5000, 1, uSmoke) end -- allow smoke to disappear
 		tblFires[uElement] = nil
 		return true
 	end
@@ -75,11 +78,14 @@ local function handleSmoke(uFire)
 		local iX, iY, iZ	= getElementPosition(localPlayer)
 		local iFX, iFY, iFZ = getElementPosition(uFire)
 		if getDistanceBetweenPoints3D(iX, iY, iZ, iFX, iFY, iFZ) < setting_smokeRenderDistance then
-			if tblFires[uFire] and not tblFires[uFire].uSmokeEffect or getTickCount()-tblFires[uFire].uSmokeEffect > 1000 then
+			if tblFires[uFire] and not tblFires[uFire].iSmokeEffectTime or getTickCount()-tblFires[uFire].iSmokeEffectTime > 2000 then
+				destroyElementIfExists(tblFires[uFire].uSmokeEffect)
 				local iX, iY, iZ = getElementPosition(uFire)
-				local effect = createEffect("tank_fire", iX, iY, iZ)
+				local effect = createEffect("explosion_door", iX, iY, iZ)
 					setEffectSpeed(effect, 0.5)
-				tblFires[uFire].uSmokeEffect = getTickCount()
+					setEffectDensity(effect, tblFires[uFire].iSize/3*2)
+				tblFires[uFire].iSmokeEffectTime = getTickCount()
+				tblFires[uFire].uSmokeEffect = effect
 			end
 		end
 	end
@@ -97,7 +103,7 @@ local function handlePedDamage(uAttacker, iWeap)
 		if iWeap == 42 then -- extinguisher
 			if setting_tickNoise and uAttacker == localPlayer then playSoundFrontEnd(37) end
 			handleSmoke(source)
-			if getElementHealth(source) <= (100-10*tblFires[source].iSize) and uAttacker == localPlayer then
+			if getElementHealth(source) <= (50) and uAttacker == localPlayer then
 				triggerServerEvent("fireElements:requestFireDeletion", source)
 			end
 		else
@@ -118,7 +124,7 @@ cancelEvent()
 		if getElementModel(source) == 407 then -- fire truck
 		handleSmoke(uPed)
 			if setting_tickNoise and getVehicleController(source) == localPlayer then playSoundFrontEnd(37) end
-			if math.random(1, tblFires[uPed].iSize*5) == 1 and getVehicleController(source) == localPlayer then
+			if math.random(1, setting_extinguishTime) == 1 and getVehicleController(source) == localPlayer then
 				triggerServerEvent("fireElements:requestFireDeletion", uPed)
 			end
 		end
@@ -207,5 +213,5 @@ addEventHandler("onClientResourceStart", resourceRoot, function()
 end)
 
 
-setPedTargetingMarkerEnabled(false)
+--setPedTargetingMarkerEnabled(false) --uncomment this to prevent green aim arrows in fires
 --setDevelopmentMode(true)
