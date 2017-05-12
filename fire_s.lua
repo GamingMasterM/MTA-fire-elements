@@ -57,7 +57,23 @@ local function decreaseFireSize(uFire)
 	if tblFires[uFire].iSize > 1 then
 		tblFires[uFire].iSize = tblFires[uFire].iSize - 1
 		setElementHealth(uFire, 100) -- renew fire
-		triggerClientEvent("fireElements:onFireDecreaseSize", uFire, tblFires[uFire].iSize)
+		triggerClientEvent("fireElements:onFireChangeSize", uFire, tblFires[uFire].iSize)
+		return true
+	end
+	return false
+end
+
+--//
+--||  increaseFireSize
+--||  	parameters:
+--||  		uFire		= the fire element
+--\\
+
+function increaseFireSize(uFire)
+	if tblFires[uFire].iSize < 3 then
+		tblFires[uFire].iSize = tblFires[uFire].iSize + 1
+		setElementHealth(uFire, 100) -- renew fire
+		triggerClientEvent("fireElements:onFireChangeSize", uFire, tblFires[uFire].iSize)
 		return true
 	end
 	return false

@@ -7,7 +7,7 @@
 
 addEvent("fireElements:onFireCreate", true)
 addEvent("fireElements:onFireDestroy", true)
-addEvent("fireElements:onFireDecreaseSize", true)
+addEvent("fireElements:onFireChangeSize", true)
 
 --//
 --||  useful
@@ -148,20 +148,66 @@ end
 
 
 --//
---||  decreaseFireSize (local)
+--||  changeFireSize (local)
 --||  	parameters:
 --||  		iSize			= the new size of the fire
 --\\
 
-local function decreaseFireSize(iSize)
+local function changeFireSize(iSize)
+	outputChatBox(iSize)
 	if tblFires[source] then
-	tblFires[source].iSize = iSize
-	destroyElementIfExists(tblFires[source].uEffect)
-	destroyElementIfExists(tblFires[source].uBurningCol)
-	local iX, iY, iZ = getElementPosition(source)
-	tblFires[source].uEffect = createEffect(tblEffectFromFireSize[iSize], iX, iY, iZ,-90, 0, 0, setting_smallFireRenderDistance*iSize)
-	tblFires[source].uBurningCol = createColSphere(iX, iY, iZ, iSize/4)
-	addEventHandler("onClientColShapeHit", tblFires[source].uBurningCol, burnPlayer)
+		tblFires[source].iSize = iSize
+		destroyElementIfExists(tblFires[source].uEffect)
+		destroyElementIfExists(tblFires[source].uBurningCol)
+		local iX, iY, iZ = getElementPosition(source)
+		tblFires[source].uEffect = createEffect(tblEffectFromFireSize[iSize], iX, iY, iZ,-90, 0, 0, setting_smallFireRenderDistance*iSize)
+		tblFires[source].uBurningCol = createColSphere(iX, iY, iZ + (tblFires[source].iMaterialID and 1 or 0), iSize/4) -- set the col shape higher when correct ground position got determined
+		addEventHandler("onClientColShapeHit", tblFires[source].uBurningCol, burnPlayer)
+		checkForFireGroundInfo(source)
+	end
+end
+
+
+--//
+--||  getFireSize
+--||  	parameters:
+--||  		uFire			= the fire
+--\\
+
+function getFireSize(uFire)
+	if tblFires[uFire] then
+		return tblFires[uFire].iSize
+	end
+end
+
+
+--//
+--||  getFireMaterialID
+--||  	parameters:
+--||  		uFire			= the fire
+--\\
+
+function getFireMaterialID(uFire)
+	if tblFires[uFire] then
+		return tblFires[uFire].iMaterialID
+	end
+end
+
+
+--//
+--||  checkForFireGroundInfo
+--\\
+
+function checkForFireGroundInfo(uFire)
+	if not tblFires[uFire].iMaterialID then
+		local iNewZ, iMaterial = getGroundOfElement(uFire)
+		if iNewZ then
+			local iX, iY, iZ = getElementPosition(uFire)
+			setElementPosition(uFire, iX, iY, iNewZ)
+			setElementPosition(tblFires[uFire].uEffect, iX, iY, iNewZ)
+			setElementPosition(tblFires[uFire].uBurningCol, iX, iY, iNewZ+1)
+			tblFires[uFire].iMaterialID = iMaterial
+		end
 	end
 end
 
@@ -184,9 +230,18 @@ local function createFireElement(iSize, uPed)
 	for index,vehicle in ipairs(getElementsByType("vehicle")) do
 		setElementCollidableWith(vehicle, uPed, false)
 	end
+	checkForFireGroundInfo(uPed)
 	addEventHandler("onClientPedDamage", uPed, handlePedDamage)
 	addEventHandler("onClientColShapeHit", tblFires[uPed].uBurningCol, burnPlayer)
+	addEventHandler("onClientElementStreamIn", uPed, function()
+		setTimer(function()
+			if isElementStreamedIn(uPed) then 
+				checkForFireGroundInfo(uPed)
+			end
+		end, 50, 1)	
+	end)
 end
+
 
 
 --//
@@ -195,7 +250,7 @@ end
 
 addEventHandler("fireElements:onFireCreate", resourceRoot, createFireElement)
 addEventHandler("fireElements:onFireDestroy", resourceRoot, destroyFireElement)
-addEventHandler("fireElements:onFireDecreaseSize", resourceRoot, decreaseFireSize)
+addEventHandler("fireElements:onFireChangeSize", resourceRoot, changeFireSize)
 
 
 --//
@@ -214,4 +269,4 @@ end)
 
 
 --setPedTargetingMarkerEnabled(false) --uncomment this to prevent green aim arrows in fires
---setDevelopmentMode(true)
+setDevelopmentMode(true)
