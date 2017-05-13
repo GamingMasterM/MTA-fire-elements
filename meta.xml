@@ -1,4 +1,5 @@
 <meta>
+	<oop>true</oop>
 	<info author="MasterM" version="1.0" type="misc" description="a small resource to create controllable fires as elements"/>
 	<script src="fire_c.lua" type="client" cache="false" />
 	<script src="fire_s.lua" type="server"/>

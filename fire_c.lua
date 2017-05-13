@@ -29,7 +29,7 @@ end
 local setting_tickNoise = false -- tick sound at extinguishing
 local setting_smoke = true -- smoke effect at extinguishing
 local setting_smokeRenderDistance = 100 -- until which distance the smoke at extinguishing renders
-local setting_smallFireRenderDistance = 20 -- until which distance a small fire renders (x2 for medium, x3 for large)
+local setting_smallFireRenderDistance = 9001 -- debug 20 -- until which distance a small fire renders (x2 for medium, x3 for large)
 local setting_extinguishTime = 10 -- not an actual time, but 1/setting chance of fire extinguishing
 
 
@@ -154,7 +154,6 @@ end
 --\\
 
 local function changeFireSize(iSize)
-	outputChatBox(iSize)
 	if tblFires[source] then
 		tblFires[source].iSize = iSize
 		destroyElementIfExists(tblFires[source].uEffect)

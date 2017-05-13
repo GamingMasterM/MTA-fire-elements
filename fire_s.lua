@@ -33,6 +33,9 @@ addEvent("fireElements:onFireExtinguish")
 function destroyFireElement(uElement, uDestroyer)
 	if tblFires[uElement] then
 		triggerClientEvent("fireElements:onFireDestroy", resourceRoot, uElement) -- uElement cannot be the triggered source element because it's destroyed lol
+		if isElement(tblFires[uElement].uFireRoot) then 
+			updateFireInRoot(tblFires[uElement].uFireRoot, tblFires[uElement].iRoot_i, tblFires[uElement].iRoot_v, 0, true)
+		end
 		if isElement(uElement) then
 			triggerEvent("fireElements:onFireExtinguish", uElement, uDestroyer, tblFires[uElement].iSize)
 			destroyElement(uElement)
@@ -54,14 +57,18 @@ end
 --\\
 
 local function decreaseFireSize(uFire)
-	if tblFires[uFire].iSize > 1 then
+	if tblFires[uFire] and tblFires[uFire].iSize > 1 then
 		tblFires[uFire].iSize = tblFires[uFire].iSize - 1
 		setElementHealth(uFire, 100) -- renew fire
 		triggerClientEvent("fireElements:onFireChangeSize", uFire, tblFires[uFire].iSize)
+		if isElement(tblFires[uFire].uFireRoot) then 
+			updateFireInRoot(tblFires[uFire].uFireRoot, tblFires[uFire].iRoot_i, tblFires[uFire].iRoot_v, tblFires[uFire].iSize, true)
+		end
 		return true
 	end
 	return false
 end
+
 
 --//
 --||  increaseFireSize
@@ -70,10 +77,32 @@ end
 --\\
 
 function increaseFireSize(uFire)
-	if tblFires[uFire].iSize < 3 then
+	if tblFires[uFire] and tblFires[uFire].iSize < 3 then
 		tblFires[uFire].iSize = tblFires[uFire].iSize + 1
 		setElementHealth(uFire, 100) -- renew fire
 		triggerClientEvent("fireElements:onFireChangeSize", uFire, tblFires[uFire].iSize)
+		if isElement(tblFires[uElement].uFireRoot) then 
+			updateFireInRoot(tblFires[uFire].uFireRoot, tblFires[uFire].iRoot_i, tblFires[uFire].iRoot_v, tblFires[uFire].iSize, true)
+		end
+		return true
+	end
+	return false
+end
+
+
+--//
+--||  setFireSize
+--||  	parameters:
+--||  		uFire		= the fire element
+--||  		iSize		= the new size
+--\\
+
+function setFireSize(uFire, iSize)
+	if tblFires[uFire] then
+		tblFires[uFire].iSize = iSize
+		setElementHealth(uFire, 100) -- renew fire
+		triggerClientEvent("fireElements:onFireChangeSize", uFire, iSize)
+		--dont update the fire root because this may cause an endless loop
 		return true
 	end
 	return false
@@ -115,13 +144,16 @@ end
 --||  	returns: the fire element (a ped)
 --\\
 
-function createFireElement(iX, iY, iZ, iSize, bDecaying)
+function createFireElement(iX, iY, iZ, iSize, bDecaying, uFireRoot, iRoot_i, iRoot_v)
 	if tonumber(iX) and tonumber(iY) and tonumber(iZ) and tonumber(iSize) and iSize >= 1 and iSize <= 3 then
 		local uPed = createPed(0, iX, iY, iZ, 0, false)
 			setElementFrozen(uPed, true)
 			setElementAlpha(uPed, 0)
 		tblFires[uPed] = {}
 		tblFires[uPed].iSize = iSize
+		tblFires[uPed].uFireRoot = uFireRoot
+		tblFires[uPed].iRoot_i = iRoot_i
+		tblFires[uPed].iRoot_v = iRoot_v
 		setFireDecaying(uPed, bDecaying)
 		triggerClientEvent("fireElements:onFireCreate", uPed, iSize)
 
