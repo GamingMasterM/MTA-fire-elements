@@ -1,4 +1,5 @@
-addEvent("fireElementKI:getUpdatedFires", true)
+
+addEvent("fireElementKI:onFireRootDestroyed")
 local tblFireRoots = {}
 local setting_coords_per_fire = 2 -- how many coordinates a single fire occupies
 
@@ -37,6 +38,12 @@ function spairs(t, order) --http://stackoverflow.com/questions/15706270/sort-a-t
     end
 end
 
+function table.size(tab)
+    local length = 0
+    for _ in pairs(tab) do length = length + 1 end
+    return length
+end
+
 
 --//
 --||  createFireRoot
@@ -58,6 +65,13 @@ function createFireRoot(iX, iY, iW, iH)
         uUpdateTimer = setTimer(updateFireRoot, 10000, 0, uSyncedElement),
         tblFireElements = {},
         tblFireSizes = {},
+        tblStatistics = {
+            iStartTime = getTickCount(),
+            tblFiresByPlayer = {},
+            iFiresDecayed = 0,
+            iFiresActive = 0,
+            iFiresTotal = 0,
+        }
     }
 
     for index = 1, math.sqrt(iW*iH)/setting_coords_per_fire/3 do
@@ -90,7 +104,6 @@ function updateFireRoot(uRoot)
             if iSize == 3 then --spawn new fires around size 3 fires
                 local iSizeSum = 0
                 for sSurroundPos, iSurroundSize in pairs(tblSurroundingFires) do
-                    
                     if iSurroundSize == 0 and math.random(1, 3) == 1 then -- spawn new fires
                         local ii, vv = tonumber(split(sSurroundPos, ",")[1]), tonumber(split(sSurroundPos, ",")[2]) 
                         updateFireInRoot(uRoot, ii, vv, 1)
@@ -125,9 +138,17 @@ function updateFireRoot(uRoot)
                 end
             end
         end
+        outputDebugString("fire root "..inspect(uRoot).." has "..tblFireRoots[uRoot].tblStatistics.iFiresActive.." fires active")
+        if tblFireRoots[uRoot].tblStatistics.iFiresActive == 0 then
+            destroyFireRoot(uRoot)
+        end
     end
 end
 
+
+--//
+--||  updateFireInRoot
+--\\
 
 function updateFireInRoot(uRoot, i, v, iNewSize, bDontDestroyElement)
     if tblFireRoots[uRoot] then
@@ -144,10 +165,22 @@ function updateFireInRoot(uRoot, i, v, iNewSize, bDontDestroyElement)
                         local iX = tblFireRoots[uRoot].iX + i*setting_coords_per_fire + math.random(-0.7, 0.7)
                         local iY = tblFireRoots[uRoot].iY + v*setting_coords_per_fire + math.random(-0.7, 0.7)
                         local uFe = createFireElement(iX, iY, 4, iNewSize, false, uRoot, i, v)
+                        tblFireRoots[uRoot].tblStatistics.iFiresActive = tblFireRoots[uRoot].tblStatistics.iFiresActive + 1
+                        tblFireRoots[uRoot].tblStatistics.iFiresTotal = tblFireRoots[uRoot].tblStatistics.iFiresTotal + 1
+        
                         addEventHandler("fireElements:onFireExtinguish", uFe, function(uDestroyer)
-                            
+                            if isElement(uDestroyer) then
+                                outputDebugString(inspect(uDestroyer).." has destroyed fire "..inspect(source))
+                                if not tblFireRoots[uRoot].tblStatistics.tblFiresByPlayer[uDestroyer] then
+                                    tblFireRoots[uRoot].tblStatistics.tblFiresByPlayer[uDestroyer] = 0
+                                end
+                                tblFireRoots[uRoot].tblStatistics.tblFiresByPlayer[uDestroyer] = tblFireRoots[uRoot].tblStatistics.tblFiresByPlayer[uDestroyer] + 1
+                            else
+                                tblFireRoots[uRoot].tblStatistics.iFiresDecayed = tblFireRoots[uRoot].tblStatistics.iFiresDecayed + 1
+                            end
+                            tblFireRoots[uRoot].tblStatistics.iFiresActive = tblFireRoots[uRoot].tblStatistics.iFiresActive - 1
                         end)
-
+                        if tblFireRoots[uRoot].tblFireElements[i..","..v] then outputDebugString("fail!") end
                         tblFireRoots[uRoot].tblFireElements[i..","..v] = uFe
                     else
                         setFireSize(tblFireRoots[uRoot].tblFireElements[i..","..v], iNewSize)
@@ -159,6 +192,10 @@ function updateFireInRoot(uRoot, i, v, iNewSize, bDontDestroyElement)
     end
 end
 
+
+--//
+--||  getFireSizeInRoot
+--\\
 
 function getFireSizeInRoot(uRoot, i, v, tblCustomSizes)
     if tblFireRoots[uRoot] then
@@ -173,11 +210,18 @@ function getFireSizeInRoot(uRoot, i, v, tblCustomSizes)
 end
 
 
-addEventHandler("fireElementKI:getUpdatedFires", resourceRoot, function(tblUpdatedFires)
-    for _, uFire in pairs(tblUpdatedFires) do
-        increaseFireSize(uFire)
+--//
+--||  destroyFireRoot
+--\\
+
+function destroyFireRoot(uRoot)
+    triggerEvent("fireElementKI:onFireRootDestroyed", uRoot, tblFireRoots[uRoot].tblStatistics)
+    if isTimer(tblFireRoots[uRoot].uUpdateTimer) then killTimer(tblFireRoots[uRoot].uUpdateTimer) end
+    for i, uEle in pairs(tblFireRoots[uRoot].tblFireElements) do
+        destroyFireElement(uEle)
     end
-end)
+    tblFireRoots[uRoot] = nil
+end
 
 
 --//
@@ -186,6 +230,11 @@ end)
 
 setTimer(function()
     local r = createFireRoot(-33, 50, 30, 22)
+    addEventHandler("fireElementKI:onFireRootDestroyed", r, function(tblStatistics)
+        outputDebugString("fire root "..inspect(r).." has been extinguished completely. Statistics:")
+        iprint(tblStatistics)
+    end)
+    setTimer(destroyFireRoot, 60000, 1, r)
 end, 50, 1)
 
 

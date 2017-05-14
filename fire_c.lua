@@ -188,7 +188,6 @@ end
 
 function checkForFireGroundInfo(uFire)
 	if not tblFires[uFire].bCorrectPlaced and isElementStreamedIn(uFire) then
-	iprint(uFire)
 		local iX, iY, iZ = getElementPosition(uFire)
 		local iNewZ = getGroundPosition(iX, iY, iZ + 100)
 		setElementPosition(uFire, iX, iY, iNewZ)
