@@ -29,7 +29,7 @@ end
 local setting_tickNoise = false -- tick sound at extinguishing
 local setting_smoke = true -- smoke effect at extinguishing
 local setting_smokeRenderDistance = 100 -- until which distance the smoke at extinguishing renders
-local setting_smallFireRenderDistance = 9001 -- debug 20 -- until which distance a small fire renders (x2 for medium, x3 for large)
+local setting_fireRenderDistance = 50 -- until which distance a small fire renders (x2 for medium, x3 for large)
 local setting_extinguishTime = 10 -- not an actual time, but 1/setting chance of fire extinguishing
 
 
@@ -159,7 +159,7 @@ local function changeFireSize(iSize)
 		destroyElementIfExists(tblFires[source].uEffect)
 		destroyElementIfExists(tblFires[source].uBurningCol)
 		local iX, iY, iZ = getElementPosition(source)
-		tblFires[source].uEffect = createEffect(tblEffectFromFireSize[iSize], iX, iY, iZ,-90, 0, 0, setting_smallFireRenderDistance*iSize)
+		tblFires[source].uEffect = createEffect(tblEffectFromFireSize[iSize], iX, iY, iZ,-90, 0, 0, setting_fireRenderDistance)
 		tblFires[source].uBurningCol = createColSphere(iX, iY, iZ + (tblFires[source].iMaterialID and 1 or 0), iSize/4) -- set the col shape higher when correct ground position got determined
 		addEventHandler("onClientColShapeHit", tblFires[source].uBurningCol, burnPlayer)
 		checkForFireGroundInfo(source)
@@ -181,32 +181,20 @@ end
 
 
 --//
---||  getFireMaterialID
+--||  checkForFireGroundInfo
 --||  	parameters:
 --||  		uFire			= the fire
 --\\
 
-function getFireMaterialID(uFire)
-	if tblFires[uFire] then
-		return tblFires[uFire].iMaterialID
-	end
-end
-
-
---//
---||  checkForFireGroundInfo
---\\
-
 function checkForFireGroundInfo(uFire)
-	if not tblFires[uFire].iMaterialID then
-		local iNewZ, iMaterial = getGroundOfElement(uFire)
-		if iNewZ then
-			local iX, iY, iZ = getElementPosition(uFire)
-			setElementPosition(uFire, iX, iY, iNewZ)
-			setElementPosition(tblFires[uFire].uEffect, iX, iY, iNewZ)
-			setElementPosition(tblFires[uFire].uBurningCol, iX, iY, iNewZ+1)
-			tblFires[uFire].iMaterialID = iMaterial
-		end
+	if not tblFires[uFire].bCorrectPlaced and isElementStreamedIn(uFire) then
+	iprint(uFire)
+		local iX, iY, iZ = getElementPosition(uFire)
+		local iNewZ = getGroundPosition(iX, iY, iZ + 100)
+		setElementPosition(uFire, iX, iY, iNewZ)
+		setElementPosition(tblFires[uFire].uEffect, iX, iY, iNewZ)
+		setElementPosition(tblFires[uFire].uBurningCol, iX, iY, iNewZ+1)
+		tblFires[uFire].bCorrectPlaced = true
 	end
 end
 
@@ -223,7 +211,7 @@ local function createFireElement(iSize, uPed)
 	local iX, iY, iZ = getElementPosition(uPed)
 	tblFires[uPed] = {}
 	tblFires[uPed].iSize = iSize
-	tblFires[uPed].uEffect = createEffect(tblEffectFromFireSize[iSize], iX, iY, iZ,-90, 0, 0, setting_smallFireRenderDistance*iSize)
+	tblFires[uPed].uEffect = createEffect(tblEffectFromFireSize[iSize], iX, iY, iZ,-90, 0, 0, setting_fireRenderDistance)
 	tblFires[uPed].uBurningCol = createColSphere(iX, iY, iZ, iSize/4)
 	setElementCollidableWith (uPed, localPlayer, false)
 	for index,vehicle in ipairs(getElementsByType("vehicle")) do
@@ -237,7 +225,7 @@ local function createFireElement(iSize, uPed)
 			if isElement(uPed) and isElementStreamedIn(uPed) then 
 				checkForFireGroundInfo(uPed)
 			end
-		end, 50, 1)	
+		end, 500, 1)	
 	end)
 end
 

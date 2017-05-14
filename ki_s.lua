@@ -98,7 +98,7 @@ function updateFireRoot(uRoot)
                         iSizeSum = iSizeSum + iSurroundSize
                     end
                 end
-                if iSizeSum > 8 then -- let the big fire decay if there is every spot taken + min. 1 spot of size 2
+                if iSizeSum > 8 then -- let the big fire decay if there is every spot taken
                     if math.random(1,3) == 1 then 
                         updateFireInRoot(uRoot, i, v, 0)
                     else
@@ -107,10 +107,8 @@ function updateFireRoot(uRoot)
                 end
             elseif iSize == 2 then
                 local iSizeSum = 0
-                local iSum = 0
                 for sSurroundPos, iSurroundSize in pairs(tblSurroundingFires) do
                     iSizeSum = iSizeSum + iSurroundSize
-                    iSum = iSum + 1
                 end
                 if iSizeSum > 8 then -- let the big fire decay if there is every spot surrounding it taken
                     updateFireInRoot(uRoot, i, v, 1)
@@ -145,7 +143,12 @@ function updateFireInRoot(uRoot, i, v, iNewSize, bDontDestroyElement)
                     if not isElement(tblFireRoots[uRoot].tblFireElements[i..","..v]) then
                         local iX = tblFireRoots[uRoot].iX + i*setting_coords_per_fire + math.random(-0.7, 0.7)
                         local iY = tblFireRoots[uRoot].iY + v*setting_coords_per_fire + math.random(-0.7, 0.7)
-                        tblFireRoots[uRoot].tblFireElements[i..","..v] = createFireElement(iX, iY, 4, iNewSize, false, uRoot, i, v)
+                        local uFe = createFireElement(iX, iY, 4, iNewSize, false, uRoot, i, v)
+                        addEventHandler("fireElements:onFireExtinguish", uFe, function(uDestroyer)
+                            
+                        end)
+
+                        tblFireRoots[uRoot].tblFireElements[i..","..v] = uFe
                     else
                         setFireSize(tblFireRoots[uRoot].tblFireElements[i..","..v], iNewSize)
                     end

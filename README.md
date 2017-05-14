@@ -4,7 +4,7 @@ A resource to create serverside controllable fire in MTA. Possible usage is for 
 
 
 Basic functions and events (only serverside):
-```
+```Lua
 fire uFire = createFireElement(int x, int y, int z, int size, bool decaying)
 -- x,y,z = the position of your fire
 -- size = the size of your fire (from 1 to 3, where 1 is the smallest)
@@ -21,6 +21,7 @@ addEventHandler("fireElements:onFireExtinguish", fire fire,
     -- inside handler function:
       -- destroyer refers to the player who has extinguished the fire (otherwise nil)
       -- size represents the size the fire has before it went out (useful for determining which player did the most work when scripting something like a fire brigade)
+      -- (size is always 1 after commit 195a1f5f1f358e3914aea51e8f4e9a731b15f2bf)
   end
 )
 ```
@@ -28,4 +29,4 @@ addEventHandler("fireElements:onFireExtinguish", fire fire,
 
 
 
-two keyboard broke in the process of writing `extinguish`
+two keyboards broke in the process of writing `extinguish`
