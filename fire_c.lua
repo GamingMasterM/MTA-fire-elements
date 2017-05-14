@@ -234,7 +234,7 @@ local function createFireElement(iSize, uPed)
 	addEventHandler("onClientColShapeHit", tblFires[uPed].uBurningCol, burnPlayer)
 	addEventHandler("onClientElementStreamIn", uPed, function()
 		setTimer(function()
-			if isElementStreamedIn(uPed) then 
+			if isElement(uPed) and isElementStreamedIn(uPed) then 
 				checkForFireGroundInfo(uPed)
 			end
 		end, 50, 1)	

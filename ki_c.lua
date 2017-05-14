@@ -72,21 +72,7 @@ addEventHandler("onClientRender", root, function()
         dxDrawText("material id: "..iMaterial,500, 500, 500, 500)
     else
         dxDrawText("material id: too high",500, 500, 500, 500)
-    end
-
-    for i, uArea in pairs(getElementsByType("radararea")) do
-        local iX, iY = getElementPosition(uArea)
-        local iW, iH = getRadarAreaSize(uArea)
-        local iZ1 = getGroundPosition(iX, iY, 500) + 5
-        local iZ2 = getGroundPosition(iX+iW, iY, 500) + 5
-        local iZ3 = getGroundPosition(iX, iY+iH, 500) + 5
-        local iZ4 = getGroundPosition(iX+iW, iY+iH, 500) + 5
-        dxDrawLine3D(iX, iY, iZ1, iX+iW, iY, iZ2)
-        dxDrawLine3D(iX, iY, iZ1, iX, iY+iH, iZ3)
-        dxDrawLine3D(iX+iW, iY, iZ2, iX+iW, iY+iH, iZ4)
-        dxDrawLine3D(iX, iY+iH, iZ3, iX+iW, iY+iH, iZ4)
-    end
-    
+    end    
 end)
 
 

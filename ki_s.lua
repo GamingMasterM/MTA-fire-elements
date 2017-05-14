@@ -14,14 +14,29 @@ function math.round(number, decimals, method)
     else return tonumber(("%."..decimals.."f"):format(number)) end
 end
 
-function table.copy(tab, recursive)
-    local ret = {}
-    for key, value in pairs(tab) do
-        if (type(value) == "table") and recursive then ret[key] = table.copy(value)
-        else ret[key] = value end
+function spairs(t, order) --http://stackoverflow.com/questions/15706270/sort-a-table-in-lua
+    -- collect the keys
+    local keys = {}
+    for k in pairs(t) do keys[#keys+1] = k end
+
+    -- if order function given, sort by it by passing the table and keys a, b,
+    -- otherwise just sort the keys 
+    if order then
+        table.sort(keys, function(a,b) return order(t, a, b) end)
+    else
+        table.sort(keys)
     end
-    return ret
+
+    -- return the iterator function
+    local i = 0
+    return function()
+        i = i + 1
+        if keys[i] then
+            return keys[i], t[keys[i]]
+        end
+    end
 end
+
 
 --//
 --||  createFireRoot
@@ -45,9 +60,9 @@ function createFireRoot(iX, iY, iW, iH)
         tblFireSizes = {},
     }
 
-    for index = 1, math.sqrt(iW*iH)/setting_coords_per_fire do
+    for index = 1, math.sqrt(iW*iH)/setting_coords_per_fire/3 do
         local i, v = math.random(0, iW/setting_coords_per_fire), math.random(0, iH/setting_coords_per_fire)
-        updateFireInRoot(uSyncedElement, i, v, 1)
+        updateFireInRoot(uSyncedElement, i, v, 3)
     end
     return uSyncedElement
 end
@@ -59,52 +74,60 @@ end
 
 function updateFireRoot(uRoot)
     if tblFireRoots[uRoot] then
-        local tblFires_old = table.copy(tblFireRoots[uRoot].tblFireSizes)
-        for i = 0, tblFireRoots[uRoot].max_i do
-            for v = 0, tblFireRoots[uRoot].max_v do
-                local tr = getFireSizeInRoot(uRoot, i+1, v+1, tblFires_old) or 0
-                local t = getFireSizeInRoot(uRoot, i, v+1, tblFires_old) or 0
-                local tl = getFireSizeInRoot(uRoot, i-1, v+1, tblFires_old) or 0
-                local br = getFireSizeInRoot(uRoot, i+1, v-1, tblFires_old) or 0
-                local b = getFireSizeInRoot(uRoot, i, v-1, tblFires_old) or 0
-                local bl = getFireSizeInRoot(uRoot, i-1, v-1, tblFires_old) or 0
-                local r = getFireSizeInRoot(uRoot, i+1, v, tblFires_old) or 0
-                local l = getFireSizeInRoot(uRoot, i-1, v, tblFires_old) or 0
+        for sPos, iSize in spairs(tblFireRoots[uRoot].tblFireSizes, function(t,a,b) return t[b] < t[a] end) do
+            local i,v = tonumber(split(sPos, ",")[1]), tonumber(split(sPos, ",")[2])
+            local tblSurroundingFires = {
+                [(i+1)..","..(v+1)] = (getFireSizeInRoot(uRoot, i+1, v+1)   or 0), --tr
+                [(i)..","..(v+1)]   = (getFireSizeInRoot(uRoot, i,   v+1)   or 0), --t
+                [(i-1)..","..(v+1)] = (getFireSizeInRoot(uRoot, i-1, v+1)   or 0), --tl
+                [(i+1)..","..(v-1)] = (getFireSizeInRoot(uRoot, i+1, v-1)   or 0), --br
+                [(i)..","..(v-1)]   = (getFireSizeInRoot(uRoot, i,   v-1)   or 0), --b
+                [(i-1)..","..(v-1)] = (getFireSizeInRoot(uRoot, i-1, v-1)   or 0), --bl
+                [(i+1)..","..(v)]   = (getFireSizeInRoot(uRoot, i+1, v)     or 0), --r
+                [(i-1)..","..(v)]   = (getFireSizeInRoot(uRoot, i-1, v)     or 0), --l
+            }
 
-                local sum = tr+t+tl+br+b+bl+r+l  -- min = 0, max = 9*3=
-                local max_size = math.max(tr, t, tl, br, b, bl, r, l)
-                local cur_size = getFireSizeInRoot(uRoot, i, v, tblFires_old) or 0
-                local unique_fires = math.ceil(sum/3)
-
-                local new_size = 0 --TODO: clean up code
-    
-                if cur_size == 1 and unique_fires > 0 then 
-                    new_size = 2
+            if iSize == 3 then --spawn new fires around size 3 fires
+                local iSizeSum = 0
+                for sSurroundPos, iSurroundSize in pairs(tblSurroundingFires) do
+                    
+                    if iSurroundSize == 0 and math.random(1, 3) == 1 then -- spawn new fires
+                        local ii, vv = tonumber(split(sSurroundPos, ",")[1]), tonumber(split(sSurroundPos, ",")[2]) 
+                        updateFireInRoot(uRoot, ii, vv, 1)
+                    else
+                        iSizeSum = iSizeSum + iSurroundSize
+                    end
                 end
-                if cur_size >= 2 and unique_fires > 3 then 
-                    new_size = 3
+                if iSizeSum > 8 then -- let the big fire decay if there is every spot taken + min. 1 spot of size 2
+                    if math.random(1,3) == 1 then 
+                        updateFireInRoot(uRoot, i, v, 0)
+                    else
+                        updateFireInRoot(uRoot, i, v, 2)
+                    end
                 end
-                if cur_size == 0 and unique_fires > 0 and unique_fires < 3 and max_size > 1 then 
-                    new_size = 1
+            elseif iSize == 2 then
+                local iSizeSum = 0
+                local iSum = 0
+                for sSurroundPos, iSurroundSize in pairs(tblSurroundingFires) do
+                    iSizeSum = iSizeSum + iSurroundSize
+                    iSum = iSum + 1
                 end
-                if cur_size == 3 and sum > 9 then 
-                    new_size = 2 
+                if iSizeSum > 8 then -- let the big fire decay if there is every spot surrounding it taken
+                    updateFireInRoot(uRoot, i, v, 1)
+                elseif iSizeSum > 6 and math.random(1, 2) == 1 then -- increase the size if there are more size 2 fires in its surrounding
+                    updateFireInRoot(uRoot, i, v, 3)
                 end
-
-                new_size = math.min(3, math.max(0, new_size))
-                updateFireInRoot(uRoot, i, v, new_size)
+            elseif iSize == 1 then
+                for sSurroundPos, iSurroundSize in spairs(tblSurroundingFires, function(t,a,b) return t[b] > t[a] end) do -- merge two small fires into one medium fire
+                    if iSurroundSize == 1 and math.random(1, 2) == 1 then
+                        local ii, vv = tonumber(split(sSurroundPos, ",")[1]), tonumber(split(sSurroundPos, ",")[2]) 
+                        updateFireInRoot(uRoot, i, v, 2)
+                        updateFireInRoot(uRoot, ii, vv, 0)
+                    end
+                end
             end
         end
     end
-    --[[if tblFireRoots[uRoot] then
-        if getElementSyncer(uRoot) then
-            local uSyncer = getElementSyncer(uRoot)
-            triggerClientEvent(uSyncer, "fireElementKI:calculateFireUpdates", uSyncer, tblFireRoots[uRoot].tblFires, tblFireRoots[uRoot].iNotSynced + 1)
-            tblFireRoots[uRoot].iNotSynced = 0
-        else
-            tblFireRoots[uRoot].iNotSynced = tblFireRoots[uRoot].iNotSynced + 1
-        end
-    end]]
 end
 
 
@@ -120,7 +143,9 @@ function updateFireInRoot(uRoot, i, v, iNewSize, bDontDestroyElement)
                     end
                 else -- new fire or fire changes size
                     if not isElement(tblFireRoots[uRoot].tblFireElements[i..","..v]) then
-                        tblFireRoots[uRoot].tblFireElements[i..","..v] = createFireElement(tblFireRoots[uRoot].iX + i*setting_coords_per_fire, tblFireRoots[uRoot].iY + v*setting_coords_per_fire, 4, iNewSize, false, uRoot, i, v)
+                        local iX = tblFireRoots[uRoot].iX + i*setting_coords_per_fire + math.random(-0.7, 0.7)
+                        local iY = tblFireRoots[uRoot].iY + v*setting_coords_per_fire + math.random(-0.7, 0.7)
+                        tblFireRoots[uRoot].tblFireElements[i..","..v] = createFireElement(iX, iY, 4, iNewSize, false, uRoot, i, v)
                     else
                         setFireSize(tblFireRoots[uRoot].tblFireElements[i..","..v], iNewSize)
                     end
@@ -157,7 +182,7 @@ end)
 --\\
 
 setTimer(function()
-    local r = createFireRoot(0, 50, 30, 30)
+    local r = createFireRoot(-33, 50, 30, 22)
 end, 50, 1)
 
 

@@ -136,6 +136,17 @@ end
 
 
 --//
+--||  getFirePositionInRoot
+--\\
+
+function getFirePositionInRoot(uFire, uRoot)
+	if tblFires[uFire] and tblFires[uFire].uFireRoot == uRoot then
+		return tblFires[uFire].iRoot_i, tblFires[uFire].iRoot_v
+	end
+end
+
+
+--//
 --||  createFireElement
 --||  	parameters:
 --||  		iX, iY, iZ	= coordinates of the new fire
